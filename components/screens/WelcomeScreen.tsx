@@ -26,6 +26,17 @@ export const WelcomeScreen: React.FC = () => {
                 >
                     Create Account
                 </button>
+                <div className="relative flex py-2 items-center">
+                    <div className="flex-grow border-t border-gray-300"></div>
+                    <span className="flex-shrink mx-4 text-gray-500 text-sm font-semibold">OR</span>
+                    <div className="flex-grow border-t border-gray-300"></div>
+                </div>
+                 <button
+                    onClick={() => navigate('/home')}
+                    className="w-full bg-transparent text-dark-olive font-bold py-3 px-4 rounded-xl border-2 border-dark-olive hover:bg-dark-olive/10 transition-all duration-300 transform hover:-translate-y-1"
+                >
+                    Continue as Guest
+                </button>
             </div>
         </AuthLayout>
     );

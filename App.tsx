@@ -14,7 +14,13 @@ import { ChatScreen } from './components/screens/ChatScreen';
 import { FindCoachesScreen } from './components/screens/FindCoachesScreen';
 import { CreateCourseScreen } from './components/screens/CreateCourseScreen';
 import { CreateLiveSessionScreen } from './components/screens/CreateLiveSessionScreen';
+import { PlayScreen } from './components/screens/PlayScreen';
+import { PlayOnlineLobbyScreen } from './components/screens/PlayOnlineLobbyScreen';
+import { PlayComputerScreen } from './components/screens/PlayComputerScreen';
+import { AnalysisScreen } from './components/screens/AnalysisScreen';
+import { GameScreen } from './components/screens/GameScreen';
 import { CoachRoute } from './components/utility/CoachRoute';
+import { ProtectedRoute } from './components/utility/ProtectedRoute';
 import { Crown } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
@@ -26,6 +32,14 @@ const SplashScreen: React.FC = () => (
     </div>
 );
 
+// A small helper component to handle redirection for /profile
+const ProfileRedirect: React.FC = () => {
+    const { currentUser } = useAuth();
+    // ProtectedRoute ensures currentUser is not null here.
+    return <Navigate to={`/profile/${currentUser!.id}`} replace />;
+};
+
+
 const AppRouter: React.FC = () => {
   const { currentUser, loading } = useAuth();
 
@@ -35,47 +49,45 @@ const AppRouter: React.FC = () => {
 
   return (
     <Routes>
-      {!currentUser ? (
-        <>
-          <Route path="/welcome" element={<WelcomeScreen />} />
-          <Route path="/login" element={<LoginScreen />} />
-          <Route path="/signup" element={<SignUpScreen />} />
-          <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
-          <Route path="*" element={<Navigate to="/welcome" replace />} />
-        </>
-      ) : (
-        <>
-          <Route path="/" element={<MainLayout />}>
+        {/* Auth routes: only accessible when logged out. Redirect to home if logged in. */}
+        <Route path="/welcome" element={!currentUser ? <WelcomeScreen /> : <Navigate to="/home" replace />} />
+        <Route path="/login" element={!currentUser ? <LoginScreen /> : <Navigate to="/home" replace />} />
+        <Route path="/signup" element={!currentUser ? <SignUpScreen /> : <Navigate to="/home" replace />} />
+        <Route path="/forgot-password" element={!currentUser ? <ForgotPasswordScreen /> : <Navigate to="/home" replace />} />
+
+        {/* Main app layout accessible to all */}
+        <Route path="/" element={<MainLayout />}>
             <Route index element={<Navigate to="/home" replace />} />
+            {/* Publicly accessible routes within MainLayout */}
             <Route path="home" element={<HomeScreen />} />
             <Route path="explore" element={<ExploreScreen />} />
             <Route path="find-coaches" element={<FindCoachesScreen />} />
             <Route path="live" element={<LiveScreen />} />
-            <Route path="messages" element={<MessagesScreen />} />
-            <Route path="chat/:receiverId" element={<ChatScreen />} />
             <Route path="profile/:userId" element={<ProfileScreen />} />
-            <Route path="profile" element={<Navigate to={`/profile/${currentUser.id}`} replace />} />
-            
-            {/* Coach Only Routes */}
-            <Route path="create-course" element={
-                <CoachRoute>
-                    <CreateCourseScreen />
-                </CoachRoute>
-            } />
-             <Route path="create-live-session" element={
-                <CoachRoute>
-                    <CreateLiveSessionScreen />
-                </CoachRoute>
-            } />
 
+            {/* Play routes that are now public */}
+            <Route path="play" element={<PlayScreen />} />
+            <Route path="play/computer" element={<PlayComputerScreen />} />
+            <Route path="play/analysis" element={<AnalysisScreen />} />
+
+            {/* Protected routes that require login */}
+            <Route path="messages" element={<ProtectedRoute><MessagesScreen /></ProtectedRoute>} />
+            <Route path="chat/:receiverId" element={<ProtectedRoute><ChatScreen /></ProtectedRoute>} />
+            
+            {/* Profile route for the current user */}
+            <Route path="profile" element={<ProtectedRoute><ProfileRedirect /></ProtectedRoute>} />
+
+            {/* Protected Play routes */}
+            <Route path="play/online" element={<ProtectedRoute><PlayOnlineLobbyScreen /></ProtectedRoute>} />
+            <Route path="game/:gameId" element={<ProtectedRoute><GameScreen /></ProtectedRoute>} />
+
+            {/* Coach Only Routes */}
+            <Route path="create-course" element={<CoachRoute><CreateCourseScreen /></CoachRoute>} />
+            <Route path="create-live-session" element={<CoachRoute><CreateLiveSessionScreen /></CoachRoute>} />
+
+             {/* A catch-all inside main layout to redirect to home */}
             <Route path="*" element={<Navigate to="/home" replace />} />
-          </Route>
-          {/* Redirect auth routes to home if logged in */}
-          <Route path="/login" element={<Navigate to="/home" replace />} />
-          <Route path="/signup" element={<Navigate to="/home" replace />} />
-          <Route path="/welcome" element={<Navigate to="/home" replace />} />
-        </>
-      )}
+        </Route>
     </Routes>
   );
 };

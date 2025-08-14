@@ -6,6 +6,7 @@ import { CourseCard } from '../ui/CourseCard';
 import { Bell, ChevronRight, PlayCircle, Crown, BarChart } from 'lucide-react';
 import type { LiveSession } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const WelcomeHeader: React.FC = () => {
   const { currentUser } = useAuth();
@@ -29,26 +30,57 @@ const WelcomeHeader: React.FC = () => {
   );
 };
 
-
-const LiveSessionCard: React.FC<{ session: LiveSession }> = ({ session }) => (
-  <Card className="bg-gradient-to-br from-primary to-highlight-slate text-white p-6 flex flex-col">
-    <div className="flex justify-between items-start">
-        <div>
-            <span className="bg-accent text-white text-xs font-bold px-3 py-1 rounded-full animate-pulse">LIVE NOW</span>
-            <h3 className="text-xl font-bold mt-2">{session.title}</h3>
-            <div className="flex items-center mt-2">
-                <Avatar src={session.coach.avatarUrl} alt={session.coach.name} size="sm" className="border-2 border-highlight-amber" />
-                <span className="ml-2 font-semibold">{session.coach.name}</span>
+const GuestWelcomeHeader: React.FC = () => {
+    const navigate = useNavigate();
+    return (
+        <Card className="bg-gradient-to-br from-primary to-soft-emerald text-white p-6 text-center">
+            <h1 className="text-2xl font-bold">Welcome to ChessMaster Academy!</h1>
+            <p className="mt-2 opacity-90">Unlock your full potential. Sign up to get personalized courses, track your progress, and connect with Grandmasters.</p>
+            <div className="mt-4 flex flex-col sm:flex-row gap-4 justify-center">
+                <button onClick={() => navigate('/signup')} className="bg-white text-primary font-bold py-2 px-6 rounded-full hover:bg-gray-100 transition shadow-lg">
+                    Sign Up Now
+                </button>
+                <button onClick={() => navigate('/login')} className="bg-transparent border-2 border-white text-white font-bold py-2 px-6 rounded-full hover:bg-white/10 transition">
+                    Login
+                </button>
             </div>
-        </div>
-        <img src="https://picsum.photos/seed/chess-piece/80" alt="Chess Piece" className="w-20 h-20 rounded-full object-cover" />
-    </div>
-    <button className="mt-4 w-full bg-white text-primary font-bold py-3 px-4 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors">
-      <PlayCircle size={20} className="mr-2" />
-      Join Live Session
-    </button>
-  </Card>
-);
+        </Card>
+    )
+}
+
+const LiveSessionCard: React.FC<{ session: LiveSession }> = ({ session }) => {
+    const { currentUser } = useAuth();
+    const navigate = useNavigate();
+
+    const handleJoin = () => {
+        if (!currentUser) {
+            navigate('/login');
+        } else {
+            // In a real app, this would navigate to the session page
+            console.log(`User ${currentUser.id} joining session ${session.id}`);
+        }
+    };
+
+    return (
+        <Card className="bg-gradient-to-br from-primary to-highlight-slate text-white p-6 flex flex-col">
+            <div className="flex justify-between items-start">
+                <div>
+                    <span className="bg-accent text-white text-xs font-bold px-3 py-1 rounded-full animate-pulse">LIVE NOW</span>
+                    <h3 className="text-xl font-bold mt-2">{session.title}</h3>
+                    <div className="flex items-center mt-2">
+                        <Avatar src={session.coach.avatarUrl} alt={session.coach.name} size="sm" className="border-2 border-highlight-amber" />
+                        <span className="ml-2 font-semibold">{session.coach.name}</span>
+                    </div>
+                </div>
+                <img src="https://picsum.photos/seed/chess-piece/80" alt="Chess Piece" className="w-20 h-20 rounded-full object-cover" />
+            </div>
+            <button onClick={handleJoin} className="mt-4 w-full bg-white text-primary font-bold py-3 px-4 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors">
+            <PlayCircle size={20} className="mr-2" />
+            Join Live Session
+            </button>
+        </Card>
+    );
+}
 
 const SectionHeader: React.FC<{ title: string; onSeeAll?: () => void }> = ({ title, onSeeAll }) => (
     <div className="flex justify-between items-center mb-4">
@@ -64,43 +96,41 @@ const SectionHeader: React.FC<{ title: string; onSeeAll?: () => void }> = ({ tit
 export const HomeScreen: React.FC = () => {
   const { currentUser } = useAuth();
   const liveSession = MOCK_LIVE_SESSIONS.find(s => s.status === 'Live');
-
-  if (!currentUser) {
-    return <div>Loading user data...</div>; // Or a spinner
-  }
   
   return (
     <div className="space-y-8">
-      <WelcomeHeader />
+      {currentUser ? <WelcomeHeader /> : <GuestWelcomeHeader />}
       
       {liveSession && <LiveSessionCard session={liveSession} />}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card className="p-4 flex items-center bg-highlight-amber/20">
-            {SKILL_ICONS[currentUser.skillLevel]}
-            <div className="ml-4">
-                <p className="text-sm text-gray-600">Skill Level</p>
-                <p className="font-bold text-lg text-highlight-amber-darker">{currentUser.skillLevel}</p>
-            </div>
-        </Card>
-         <Card className="p-4 flex items-center bg-highlight-slate/20">
-            <Crown className="text-highlight-slate" />
-            <div className="ml-4">
-                <p className="text-sm text-gray-600">Leaderboard</p>
-                <p className="font-bold text-lg">Top 15%</p>
-            </div>
-        </Card>
-         <Card className="p-4 flex items-center bg-accent/20">
-            <BarChart className="text-accent" />
-            <div className="ml-4">
-                <p className="text-sm text-gray-600">Courses</p>
-                <p className="font-bold text-lg">3 Enrolled</p>
-            </div>
-        </Card>
-      </div>
+      {currentUser && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Card className="p-4 flex items-center bg-highlight-amber/20">
+                {SKILL_ICONS[currentUser.skillLevel]}
+                <div className="ml-4">
+                    <p className="text-sm text-gray-600">Skill Level</p>
+                    <p className="font-bold text-lg text-highlight-amber-darker">{currentUser.skillLevel}</p>
+                </div>
+            </Card>
+            <Card className="p-4 flex items-center bg-highlight-slate/20">
+                <Crown className="text-highlight-slate" />
+                <div className="ml-4">
+                    <p className="text-sm text-gray-600">Leaderboard</p>
+                    <p className="font-bold text-lg">Top 15%</p>
+                </div>
+            </Card>
+            <Card className="p-4 flex items-center bg-accent/20">
+                <BarChart className="text-accent" />
+                <div className="ml-4">
+                    <p className="text-sm text-gray-600">Courses</p>
+                    <p className="font-bold text-lg">3 Enrolled</p>
+                </div>
+            </Card>
+        </div>
+      )}
       
       <section>
-        <SectionHeader title="Continue Learning" onSeeAll={() => {}} />
+        <SectionHeader title={currentUser ? "Continue Learning" : "Popular Courses"} onSeeAll={() => {}} />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {MOCK_COURSES.slice(0, 2).map(course => <CourseCard key={course.id} course={course} />)}
         </div>

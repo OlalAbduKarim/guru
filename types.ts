@@ -57,3 +57,22 @@ export interface Message {
     senderId: string;
     timestamp: any; // Firestore Timestamp
 }
+
+export interface GamePlayer {
+    id: string;
+    name: string;
+    avatarUrl: string;
+}
+
+export interface Game {
+    id: string;
+    pgn: string;
+    fen: string;
+    whitePlayer: GamePlayer;
+    blackPlayer?: GamePlayer;
+    status: 'waiting' | 'active' | 'completed' | 'aborted';
+    winner?: 'white' | 'black' | 'draw';
+    endReason?: string;
+    createdAt: any; // Firestore Timestamp
+    updatedAt: any; // Firestore Timestamp
+}

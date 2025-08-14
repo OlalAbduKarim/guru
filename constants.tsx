@@ -1,14 +1,28 @@
 import React from 'react';
-import { Home, Search, Clapperboard, MessageSquare, User as UserIcon, Crown, ShieldCheck, Gamepad2, BookOpen } from 'lucide-react';
+import { Home, Search, Clapperboard, MessageSquare, User as UserIcon, Crown, ShieldCheck, Gamepad2, BookOpen, LogIn, Swords } from 'lucide-react';
 import type { Coach, Course, LiveSession, AppUser } from './types';
 
-export const getNavLinks = (userId?: string | null) => [
-  { href: '/home', label: 'Home', icon: <Home size={24} /> },
-  { href: '/explore', label: 'Explore', icon: <Search size={24} /> },
-  { href: '/live', label: 'Live', icon: <Clapperboard size={24} /> },
-  { href: '/messages', label: 'Messages', icon: <MessageSquare size={24} /> },
-  { href: `/profile/${userId || ''}`, label: 'Profile', icon: <UserIcon size={24} /> },
-];
+export const getNavLinks = (isLoggedIn: boolean, userId?: string) => {
+  const baseLinks = [
+    { href: '/home', label: 'Home', icon: <Home size={24} /> },
+    { href: '/explore', label: 'Explore', icon: <Search size={24} /> },
+    { href: '/live', label: 'Live', icon: <Clapperboard size={24} /> },
+    { href: '/play', label: 'Play', icon: <Swords size={24} /> },
+  ];
+
+  if (isLoggedIn) {
+    return [
+      ...baseLinks,
+      { href: '/messages', label: 'Messages', icon: <MessageSquare size={24} /> },
+      { href: `/profile/${userId || ''}`, label: 'Profile', icon: <UserIcon size={24} /> },
+    ];
+  }
+  
+  return [
+    ...baseLinks,
+    { href: '/login', label: 'Log In', icon: <LogIn size={24} /> },
+  ];
+};
 
 
 export const MOCK_ALL_USERS: AppUser[] = [

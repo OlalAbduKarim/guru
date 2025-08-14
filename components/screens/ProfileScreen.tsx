@@ -17,8 +17,20 @@ const ProfileHeader: React.FC<{ user: AppUser, isCurrentUser: boolean }> = ({ us
     const isFollowing = currentUser?.following?.includes(user.id);
     
     const handleFollowToggle = () => {
+        if (!currentUser) {
+            navigate('/login');
+            return;
+        }
         toggleFollow(user.id);
     };
+
+    const handleMessageClick = () => {
+        if (!currentUser) {
+            navigate('/login');
+            return;
+        }
+        navigate(`/chat/${user.id}`);
+    }
 
     return (
         <Card className="bg-white p-6 w-full max-w-2xl mx-auto">
@@ -50,7 +62,7 @@ const ProfileHeader: React.FC<{ user: AppUser, isCurrentUser: boolean }> = ({ us
                  ) : (
                     <>
                         <button 
-                            onClick={() => navigate(`/chat/${user.id}`)}
+                            onClick={handleMessageClick}
                             className="flex-1 flex items-center justify-center gap-2 bg-primary text-white font-semibold py-3 px-4 rounded-xl hover:bg-opacity-90 transition-colors"
                         >
                             <MessageCircle size={20} /> Message
@@ -205,8 +217,12 @@ export const ProfileScreen: React.FC = () => {
         if (userId) {
             fetchUser(userId);
         } else if (currentUser) {
-            setProfileUser(currentUser);
-            setLoading(false);
+            // This case handles /profile route, which is protected and redirects
+            // It might be better handled by the redirect logic directly setting the profile user
+            fetchUser(currentUser.id);
+        } else {
+            // A guest is trying to view a profile, which is fine, but they shouldn't hit /profile directly
+            // This is handled by router protection now.
         }
 
     }, [userId, currentUser, navigate]);
@@ -233,7 +249,7 @@ export const ProfileScreen: React.FC = () => {
 
                 {isCurrentUser && profileUser.role === 'Coach' ? (
                     <CoachProfileView user={profileUser} />
-                ) : profileUser.role === 'Student' ? (
+                ) : (isCurrentUser && profileUser.role === 'Student') ? (
                     <StudentProfileView user={profileUser} />
                 ) : null}
 

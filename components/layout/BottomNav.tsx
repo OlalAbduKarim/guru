@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 export const BottomNav: React.FC = () => {
   const location = useLocation();
   const { currentUser } = useAuth();
-  const NAV_LINKS = getNavLinks(currentUser?.id);
+  const NAV_LINKS = getNavLinks(!!currentUser, currentUser?.id);
 
 
   return (

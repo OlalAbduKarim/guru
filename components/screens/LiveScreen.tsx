@@ -6,9 +6,20 @@ import type { LiveSession, AppUser } from '../../types';
 import { Card } from '../ui/Card';
 import { Avatar } from '../ui/Avatar';
 import { Clapperboard, PlayCircle, StopCircle, Calendar, Video, Clock } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const SessionCard: React.FC<{ session: LiveSession, onAction: (id: string, newStatus: 'Live' | 'Past') => void, isCoachOwner: boolean }> = ({ session, onAction, isCoachOwner }) => {
+    const { currentUser } = useAuth();
+    const navigate = useNavigate();
+
+    const handleJoin = () => {
+        if (!currentUser) {
+            navigate('/login');
+        } else {
+            // In a real app, this would navigate to a specific session page e.g. /live/session.id
+            console.log(`User ${currentUser.id} attempting to join session ${session.id}`);
+        }
+    };
     
     const getActionButtons = () => {
         if (isCoachOwner) {
@@ -20,7 +31,7 @@ const SessionCard: React.FC<{ session: LiveSession, onAction: (id: string, newSt
             }
         } else {
              if (session.status === 'Live') {
-                return <button className="w-full bg-soft-emerald text-white font-bold py-3 px-4 rounded-full flex items-center justify-center hover:bg-opacity-90 transition-colors"><PlayCircle size={20} className="mr-2" /> Join Live</button>;
+                return <button onClick={handleJoin} className="w-full bg-soft-emerald text-white font-bold py-3 px-4 rounded-full flex items-center justify-center hover:bg-opacity-90 transition-colors"><PlayCircle size={20} className="mr-2" /> Join Live</button>;
             }
         }
         return null;
@@ -107,6 +118,7 @@ export const LiveScreen: React.FC = () => {
     }, []);
     
     const handleSessionAction = async (id: string, newStatus: 'Live' | 'Past') => {
+        if (!currentUser || currentUser.role !== 'Coach') return;
         const sessionRef = doc(db, "live_sessions", id);
         await updateDoc(sessionRef, {
             status: newStatus

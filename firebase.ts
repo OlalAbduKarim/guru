@@ -3,18 +3,20 @@ import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-// IMPORTANT: Replace with your app's Firebase project configuration
+// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyAWb4JLc7-L7jwrSuObafmqqK3rMYzaiZs",
+  authDomain: "guru-93d1e.firebaseapp.com",
+  projectId: "guru-93d1e",
+  storageBucket: "guru-93d1e.appspot.com",
+  messagingSenderId: "674240389013",
+  appId: "1:674240389013:web:cb82a55f17bb28d0ba209c",
+  measurementId: "G-EBTCZ8DWJ8"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+
 
 // Initialize and export Firebase services
 export const auth = getAuth(app);

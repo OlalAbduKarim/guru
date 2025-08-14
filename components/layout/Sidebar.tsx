@@ -9,7 +9,7 @@ export const Sidebar: React.FC = () => {
   const location = useLocation();
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
-  const NAV_LINKS = getNavLinks(currentUser?.id);
+  const NAV_LINKS = getNavLinks(!!currentUser, currentUser?.id);
 
 
   const handleLogout = async () => {
@@ -49,12 +49,14 @@ export const Sidebar: React.FC = () => {
           })}
         </ul>
       </nav>
-      <div className="p-4 border-t">
-         <button onClick={handleLogout} className={`flex items-center w-full p-3 rounded-lg transition-colors duration-200 text-gray-600 hover:bg-red-500/10 hover:text-accent`}>
-            <LogOut size={24} />
-            {!isCollapsed && <span className="ml-4 font-semibold">Log Out</span>}
-         </button>
-      </div>
+      {currentUser && (
+        <div className="p-4 border-t">
+          <button onClick={handleLogout} className={`flex items-center w-full p-3 rounded-lg transition-colors duration-200 text-gray-600 hover:bg-red-500/10 hover:text-accent`}>
+              <LogOut size={24} />
+              {!isCollapsed && <span className="ml-4 font-semibold">Log Out</span>}
+          </button>
+        </div>
+      )}
     </aside>
   );
 };
