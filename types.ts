@@ -9,6 +9,7 @@ export interface AppUser {
   bio?: string;
   followers?: string[];
   following?: string[];
+  enrolledCourses?: string[];
 }
 
 export interface Coach {
@@ -23,6 +24,7 @@ export interface Coach {
 export interface CourseMaterial {
   name: string;
   url: string;
+  type: 'pdf' | 'video';
 }
 
 export interface Course {
@@ -32,10 +34,9 @@ export interface Course {
   coach: Coach;
   rating: number;
   level: 'Beginner' | 'Intermediate' | 'Advanced' | 'Masterclass';
-  isFree: boolean;
+  price?: number;
   topic: 'Openings' | 'Midgame' | 'Endgame' | 'Strategy';
   description?: string;
-  price?: number;
   materials?: CourseMaterial[];
   coachId?: string;
 }
@@ -75,4 +76,11 @@ export interface Game {
     endReason?: string;
     createdAt: any; // Firestore Timestamp
     updatedAt: any; // Firestore Timestamp
+}
+
+export interface BaseStudyPlan {
+  id: string;
+  title: string;
+  description: string;
+  level: 'Beginner' | 'Intermediate' | 'Advanced';
 }

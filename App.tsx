@@ -23,6 +23,8 @@ import { CoachRoute } from './components/utility/CoachRoute';
 import { ProtectedRoute } from './components/utility/ProtectedRoute';
 import { Crown } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { MyLearningScreen } from './components/screens/MyLearningScreen';
+import { CourseDetailScreen } from './components/screens/CourseDetailScreen';
 
 const SplashScreen: React.FC = () => (
     <div className="flex flex-col justify-center items-center h-screen bg-primary text-white">
@@ -61,6 +63,7 @@ const AppRouter: React.FC = () => {
             {/* Publicly accessible routes within MainLayout */}
             <Route path="home" element={<HomeScreen />} />
             <Route path="explore" element={<ExploreScreen />} />
+            <Route path="course/:courseId" element={<CourseDetailScreen />} />
             <Route path="find-coaches" element={<FindCoachesScreen />} />
             <Route path="live" element={<LiveScreen />} />
             <Route path="profile/:userId" element={<ProfileScreen />} />
@@ -71,6 +74,7 @@ const AppRouter: React.FC = () => {
             <Route path="play/analysis" element={<AnalysisScreen />} />
 
             {/* Protected routes that require login */}
+            <Route path="my-learning" element={<ProtectedRoute><MyLearningScreen /></ProtectedRoute>} />
             <Route path="messages" element={<ProtectedRoute><MessagesScreen /></ProtectedRoute>} />
             <Route path="chat/:receiverId" element={<ProtectedRoute><ChatScreen /></ProtectedRoute>} />
             

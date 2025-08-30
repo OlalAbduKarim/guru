@@ -138,7 +138,7 @@ export const GameScreen: React.FC = () => {
                     {blackPlayer && <PlayerInfo player={blackPlayer} isTurn={game.turn() === 'b'} isWinner={dbGame.winner === 'black'} />}
                     <div className="my-2">
                         <ChessBoardWrapper 
-                            fen={fen} 
+                            position={fen} 
                             onMove={onMove}
                             boardOrientation={playerColor}
                             isMyTurn={isMyTurn}

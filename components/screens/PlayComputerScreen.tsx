@@ -97,7 +97,7 @@ export const PlayComputerScreen: React.FC = () => {
                     </div>
                     
                     <ChessBoardWrapper 
-                        fen={fen} 
+                        position={fen} 
                         onMove={onMove} 
                         boardOrientation={playerColor}
                         isMyTurn={!isAITurn && !game.isGameOver()}

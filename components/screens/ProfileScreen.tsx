@@ -2,26 +2,34 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Card } from '../ui/Card';
 import { Avatar } from '../ui/Avatar';
-import { Star, MessageCircle, UserPlus, ArrowRight, PlusCircle, Settings, LogOut, UserMinus, Edit, Clapperboard } from 'lucide-react';
+import { MessageCircle, UserPlus, PlusCircle, Settings, LogOut, UserMinus, Edit, Clapperboard } from 'lucide-react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { MOCK_ALL_USERS, MOCK_COACHES } from '../../constants';
-import type { AppUser } from '../../types';
-import { doc, getDoc } from 'firebase/firestore';
+import type { AppUser, Course } from '../../types';
+import { doc, getDoc, collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { db } from '../../firebase';
+import { CourseCard } from '../ui/CourseCard';
 
 const ProfileHeader: React.FC<{ user: AppUser, isCurrentUser: boolean }> = ({ user, isCurrentUser }) => {
     const navigate = useNavigate();
     const { currentUser, toggleFollow } = useAuth();
+    const [isUpdatingFollow, setIsUpdatingFollow] = useState(false);
     const roleBadgeColor = user.role === 'Coach' ? 'bg-primary text-white' : 'bg-highlight-slate text-white';
 
     const isFollowing = currentUser?.following?.includes(user.id);
     
-    const handleFollowToggle = () => {
+    const handleFollowToggle = async () => {
         if (!currentUser) {
             navigate('/login');
             return;
         }
-        toggleFollow(user.id);
+        setIsUpdatingFollow(true);
+        try {
+            await toggleFollow(user.id);
+        } catch (error) {
+            console.error("Failed to toggle follow", error);
+        } finally {
+            setIsUpdatingFollow(false);
+        }
     };
 
     const handleMessageClick = () => {
@@ -33,15 +41,15 @@ const ProfileHeader: React.FC<{ user: AppUser, isCurrentUser: boolean }> = ({ us
     }
 
     return (
-        <Card className="bg-white p-6 w-full max-w-2xl mx-auto">
+        <Card className="bg-white p-6 w-full max-w-4xl mx-auto">
             <div className="flex flex-col md:flex-row items-center text-center md:text-left">
                 <Avatar src={user.avatarUrl} alt={user.name} size="xl" className="border-4 border-primary" />
-                <div className="md:ml-6 mt-4 md:mt-0">
+                <div className="md:ml-6 mt-4 md:mt-0 flex-grow">
                     <div className="flex items-center justify-center md:justify-start gap-3">
                         <h1 className="text-3xl font-bold text-text-charcoal">{user.name}</h1>
                         <span className={`px-3 py-1 text-sm font-semibold rounded-full ${roleBadgeColor}`}>{user.role}</span>
                     </div>
-                    <p className="mt-2 text-gray-600 max-w-md">{user.bio || 'Eager to learn and master the art of chess.'}</p>
+                    <p className="mt-2 text-gray-600 max-w-md mx-auto md:mx-0">{user.bio || 'Eager to learn and master the art of chess.'}</p>
                     <div className="mt-4 flex justify-center md:justify-start space-x-6">
                         <div className="text-center">
                             <p className="text-xl font-bold">{user.followers?.length || 0}</p>
@@ -53,8 +61,7 @@ const ProfileHeader: React.FC<{ user: AppUser, isCurrentUser: boolean }> = ({ us
                         </div>
                     </div>
                 </div>
-            </div>
-            <div className="mt-6 flex flex-col sm:flex-row gap-3">
+                 <div className="mt-6 md:mt-0 flex flex-col sm:flex-row md:flex-col gap-3 w-full md:w-auto">
                  {isCurrentUser ? (
                      <button className="flex-1 flex items-center justify-center gap-2 bg-highlight-slate text-white font-semibold py-3 px-4 rounded-xl hover:bg-opacity-80 transition-colors">
                         <Edit size={20} /> Edit Profile
@@ -69,28 +76,144 @@ const ProfileHeader: React.FC<{ user: AppUser, isCurrentUser: boolean }> = ({ us
                         </button>
                         <button 
                             onClick={handleFollowToggle}
-                            className={`flex-1 flex items-center justify-center gap-2 font-semibold py-3 px-4 rounded-xl transition-colors ${isFollowing ? 'bg-gray-200 text-gray-800 hover:bg-gray-300' : 'bg-soft-emerald text-white hover:bg-opacity-90'}`}
+                            disabled={isUpdatingFollow}
+                            className={`flex-1 flex items-center justify-center gap-2 font-semibold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 ${isFollowing ? 'bg-gray-200 text-gray-800 hover:bg-gray-300' : 'bg-soft-emerald text-white hover:bg-opacity-90'}`}
                         >
                             {isFollowing ? <UserMinus size={20}/> : <UserPlus size={20} />}
-                            {isFollowing ? 'Unfollow' : 'Follow'}
+                            {isUpdatingFollow ? 'Updating...' : (isFollowing ? 'Unfollow' : 'Follow')}
                         </button>
                     </>
                  )}
+                </div>
             </div>
         </Card>
     );
 };
 
+const UserList: React.FC<{ title: string, userIds: string[] }> = ({ title, userIds }) => {
+    const [users, setUsers] = useState<AppUser[]>([]);
+    const [loading, setLoading] = useState(true);
 
-const CoachProfileView: React.FC<{ user: AppUser }> = ({ user }) => {
-    const navigate = useNavigate();
-    // In a real app, you would fetch followers from Firestore.
-    const followers = MOCK_ALL_USERS.filter(u => user.followers?.includes(u.id));
+    useEffect(() => {
+        if (!userIds || userIds.length === 0) {
+            setUsers([]);
+            setLoading(false);
+            return;
+        }
+        
+        const fetchUsers = async () => {
+            setLoading(true);
+            try {
+                // To keep the UI clean and performant, we only fetch the first 5 users.
+                // Firestore 'in' queries can handle up to 30 items.
+                const usersToFetch = userIds.slice(0, 5);
+                if (usersToFetch.length === 0) {
+                    setUsers([]);
+                    setLoading(false);
+                    return;
+                }
+                const usersRef = collection(db, 'users');
+                const q = query(usersRef, where('__name__', 'in', usersToFetch));
+                const querySnapshot = await getDocs(q);
+                const usersData = querySnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    name: doc.data().fullName,
+                    ...doc.data()
+                } as AppUser));
+                // We need to re-order based on the original userIds array, as Firestore doesn't guarantee order for 'in' queries
+                const userMap = new Map(usersData.map(u => [u.id, u]));
+                const sortedUsers = usersToFetch.map(id => userMap.get(id)).filter((u): u is AppUser => !!u);
+                setUsers(sortedUsers);
+            } catch (error) {
+                console.error(`Error fetching ${title}:`, error);
+                setUsers([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUsers();
+    }, [userIds, title]);
 
     return (
-        <div className="w-full max-w-2xl mx-auto mt-8">
+        <div>
+            <h2 className="text-2xl font-bold text-text-charcoal mb-4">{title}</h2>
+            <Card className="p-4">
+                {loading ? <p>Loading...</p> : (
+                    users.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {users.map(user => (
+                                <Link to={`/profile/${user.id}`} key={user.id} className="block hover:bg-gray-50 rounded-lg p-3 bg-background-misty">
+                                    <div className="flex items-center gap-4">
+                                        <Avatar src={user.avatarUrl} alt={user.name} size="md" />
+                                        <div className="flex-grow">
+                                            <p className="font-bold">{user.name}</p>
+                                            <p className="text-sm text-gray-500">{user.role}</p>
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    ) : <p className="text-center text-gray-500 py-4">Nothing to show here yet.</p>
+                )}
+            </Card>
+        </div>
+    );
+};
+
+
+const CourseList: React.FC<{ title: string, fetchQuery: any, profileUser: AppUser }> = ({ title, fetchQuery }) => {
+    const [courses, setCourses] = useState<Course[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchCourses = async () => {
+            setLoading(true);
+            try {
+                const querySnapshot = await getDocs(fetchQuery);
+                const coursesData = await Promise.all(querySnapshot.docs.map(async (d) => {
+                    const data = d.data();
+                    let coach: Course['coach'] = null;
+                    // Fetch coach data for each course
+                    if (data.coachId) {
+                        const coachDoc = await getDoc(doc(db, 'users', data.coachId));
+                        if (coachDoc.exists()) {
+                            const coachUser = {id: coachDoc.id, ...coachDoc.data()} as AppUser;
+                            coach = { id: coachDoc.id, name: coachUser.name, avatarUrl: coachUser.avatarUrl, rating: 4.9, bio: coachUser.bio || '', country: coachUser.country };
+                        }
+                    }
+                    return { id: d.id, ...data, coach } as Course;
+                }));
+                setCourses(coursesData);
+            } catch (error) {
+                console.error(`Error fetching ${title}:`, error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchCourses();
+    }, [fetchQuery, title]);
+
+    return (
+        <div>
+            <h2 className="text-2xl font-bold text-text-charcoal mb-4">{title}</h2>
+            {loading ? <p>Loading courses...</p> : (
+                courses.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {courses.map(course => <CourseCard key={course.id} course={course} />)}
+                    </div>
+                ) : <Card className="p-8 text-center text-gray-500">No courses to display yet.</Card>
+            )}
+        </div>
+    )
+}
+
+const CoachDashboard: React.FC = () => {
+    const navigate = useNavigate();
+    return (
+        <div>
             <h2 className="text-2xl font-bold text-text-charcoal mb-4">My Dashboard</h2>
-            <Card className="p-4 bg-white mb-8">
+             <Card className="p-4 bg-white mb-8">
                 <div className="flex flex-col sm:flex-row gap-4">
                     <button 
                         onClick={() => navigate('/create-course')}
@@ -106,77 +229,6 @@ const CoachProfileView: React.FC<{ user: AppUser }> = ({ user }) => {
                     </button>
                 </div>
             </Card>
-
-            <div className="flex justify-between items-center mb-4">
-                 <h2 className="text-2xl font-bold text-text-charcoal">My Students</h2>
-            </div>
-            <Card className="bg-white p-4">
-                {followers.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {followers.map(follower => (
-                           <Link to={`/profile/${follower.id}`} key={follower.id} className="block hover:bg-gray-50 rounded-lg">
-                             <div className="flex items-center bg-background-misty p-3 rounded-lg">
-                                <Avatar src={follower.avatarUrl} alt={follower.name} size="md" />
-                                <div className="ml-4 flex-grow">
-                                    <p className="font-bold">{follower.name}</p>
-                                    <p className="text-sm text-gray-500">{follower.skillLevel}</p>
-                                </div>
-                                <button onClick={(e) => { e.preventDefault(); navigate(`/chat/${follower.id}`)}} className="bg-primary/10 text-primary p-2 rounded-full hover:bg-primary/20">
-                                    <MessageCircle size={20} />
-                                </button>
-                            </div>
-                           </Link>
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-center text-gray-500 py-4">No students following yet.</p>
-                )}
-            </Card>
-        </div>
-    );
-};
-
-const StudentProfileView: React.FC<{ user: AppUser }> = ({ user }) => {
-    const navigate = useNavigate();
-    // In a real app, you would fetch followed coaches from Firestore.
-    const followedCoaches = MOCK_COACHES.filter(c => user.following?.includes(c.id));
-
-    return (
-        <div className="w-full max-w-2xl mx-auto mt-8">
-            <div className="flex justify-between items-center mb-4">
-                 <h2 className="text-2xl font-bold text-text-charcoal">My Coaches</h2>
-                 <button 
-                    onClick={() => navigate('/find-coaches')}
-                    className="flex items-center gap-2 text-primary font-semibold py-2 px-4 rounded-lg hover:bg-primary/10 transition"
-                 >
-                     Find More Coaches <ArrowRight size={18} />
-                 </button>
-            </div>
-            <Card className="bg-white p-4">
-                {followedCoaches.length > 0 ? (
-                    <div className="space-y-4">
-                        {followedCoaches.map(coach => (
-                             <Link to={`/profile/${coach.id}`} key={coach.id} className="block hover:bg-gray-50 rounded-lg">
-                                 <div className="flex items-center bg-background-misty p-3 rounded-lg">
-                                    <Avatar src={coach.avatarUrl} alt={coach.name} size="md" />
-                                    <div className="ml-4 flex-grow">
-                                        <p className="font-bold">{coach.name}</p>
-                                        <div className="flex items-center text-highlight-amber">
-                                            <Star size={16} className="fill-current" />
-                                            <span className="ml-1 font-semibold text-sm">{coach.rating}</span>
-                                        </div>
-                                    </div>
-                                    <button onClick={(e) => { e.preventDefault(); navigate(`/chat/${coach.id}`)}} className="bg-primary/10 text-primary p-2 rounded-full hover:bg-primary/20">
-                                        <MessageCircle size={20} />
-                                    </button>
-                                </div>
-                             </Link>
-                        ))}
-                    </div>
-                ) : (
-                     <p className="text-center text-gray-500 py-4">You are not following any coaches yet.</p>
-                )}
-            </Card>
         </div>
     );
 };
@@ -186,11 +238,12 @@ export const ProfileScreen: React.FC = () => {
     const { userId } = useParams<{ userId: string }>();
     const navigate = useNavigate();
     const [profileUser, setProfileUser] = useState<AppUser | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [loadingProfile, setLoadingProfile] = useState(true);
 
     useEffect(() => {
         const fetchUser = async (id: string) => {
-            setLoading(true);
+            if (!id) return;
+            setLoadingProfile(true);
             const userDocRef = doc(db, 'users', id);
             const userDoc = await getDoc(userDocRef);
             if(userDoc.exists()) {
@@ -198,31 +251,21 @@ export const ProfileScreen: React.FC = () => {
                 setProfileUser({
                     id: userDoc.id,
                     name: userData.fullName,
-                    email: userData.email,
-                    role: userData.role,
-                    avatarUrl: userData.avatarUrl,
-                    country: userData.country,
-                    skillLevel: userData.skillLevel,
-                    bio: userData.bio,
-                    followers: userData.followers,
-                    following: userData.following,
-                });
+                    ...userData,
+                } as AppUser);
             } else {
                 console.error("User not found");
-                navigate('/home'); // Or a 404 page
+                navigate('/home');
             }
-            setLoading(false);
+            setLoadingProfile(false);
         };
         
-        if (userId) {
-            fetchUser(userId);
-        } else if (currentUser) {
-            // This case handles /profile route, which is protected and redirects
-            // It might be better handled by the redirect logic directly setting the profile user
-            fetchUser(currentUser.id);
+        const effectiveUserId = userId || currentUser?.id;
+        if (effectiveUserId) {
+            fetchUser(effectiveUserId);
         } else {
-            // A guest is trying to view a profile, which is fine, but they shouldn't hit /profile directly
-            // This is handled by router protection now.
+             // If no userId in url and no currentUser, they need to log in.
+             navigate('/login');
         }
 
     }, [userId, currentUser, navigate]);
@@ -236,26 +279,42 @@ export const ProfileScreen: React.FC = () => {
       }
     }
     
-    if (loading || !profileUser) {
+    if (loadingProfile || !profileUser) {
         return <div className="flex items-center justify-center h-full">Loading profile...</div>;
     }
 
     const isCurrentUser = currentUser?.id === profileUser.id;
+    const coursesRef = collection(db, 'courses');
 
     return (
         <div className="p-0 md:p-4 bg-light-mint-green min-h-full -m-4 sm:-m-6 lg:-m-8">
-            <div className="p-4 sm:p-6 lg:p-8">
+            <div className="p-4 sm:p-6 lg:p-8 space-y-8 max-w-4xl mx-auto">
                 <ProfileHeader user={profileUser} isCurrentUser={isCurrentUser} />
 
-                {isCurrentUser && profileUser.role === 'Coach' ? (
-                    <CoachProfileView user={profileUser} />
-                ) : (isCurrentUser && profileUser.role === 'Student') ? (
-                    <StudentProfileView user={profileUser} />
-                ) : null}
+                {isCurrentUser && profileUser.role === 'Coach' && <CoachDashboard />}
+                
+                {profileUser.role === 'Coach' ? (
+                    <CourseList 
+                        title="Courses"
+                        fetchQuery={query(coursesRef, where('coachId', '==', profileUser.id), limit(6))}
+                        profileUser={profileUser}
+                    />
+                ) : (
+                    profileUser.enrolledCourses && profileUser.enrolledCourses.length > 0 && (
+                        <CourseList 
+                            title="Enrolled Courses"
+                            fetchQuery={query(coursesRef, where('__name__', 'in', profileUser.enrolledCourses.slice(0,10)))}
+                            profileUser={profileUser}
+                        />
+                    )
+                )}
+
+                <UserList title={profileUser.role === 'Coach' ? 'Students' : 'Followers'} userIds={profileUser.followers || []} />
+                <UserList title="Following" userIds={profileUser.following || []} />
 
 
                 {isCurrentUser && (
-                    <div className="w-full max-w-2xl mx-auto mt-8">
+                    <div>
                          <h2 className="text-2xl font-bold text-text-charcoal mb-4">Account</h2>
                          <Card className="bg-white">
                             <ul className="divide-y divide-gray-200">

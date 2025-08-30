@@ -1,9 +1,10 @@
+
 import React from 'react';
 import { Chessboard } from 'react-chessboard';
 import type { Piece, Square } from 'react-chessboard/dist/chessboard/types';
 
 interface ChessBoardWrapperProps {
-    fen: string;
+    position: string;
     onMove: (sourceSquare: Square, targetSquare: Square, piece: Piece) => boolean;
     boardOrientation?: 'white' | 'black';
     isMyTurn: boolean;
@@ -12,7 +13,7 @@ interface ChessBoardWrapperProps {
 }
 
 export const ChessBoardWrapper: React.FC<ChessBoardWrapperProps> = ({
-    fen,
+    position,
     onMove,
     boardOrientation = 'white',
     isMyTurn,
@@ -28,7 +29,11 @@ export const ChessBoardWrapper: React.FC<ChessBoardWrapperProps> = ({
     return (
         <div className="w-full max-w-[70vh] mx-auto shadow-2xl rounded-lg overflow-hidden">
             <Chessboard
-                position={fen}
+                // The `position` prop is used to set the board state using a FEN string.
+                // FIX: The type definitions for this version of react-chessboard appear to be incorrect,
+                // causing a type error on the `position` prop. Based on the error message, we are
+                // assuming the prop name expected by the types is `fen`.
+                fen={position}
                 onPieceDrop={handlePieceDrop}
                 boardOrientation={boardOrientation}
                 customBoardStyle={{

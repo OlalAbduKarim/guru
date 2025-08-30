@@ -1,5 +1,6 @@
 import React from 'react';
-import { MOCK_COURSES, MOCK_COACHES, MOCK_LIVE_SESSIONS, SKILL_ICONS } from '../../constants';
+import { MOCK_COURSES, MOCK_COACHES, MOCK_LIVE_SESSIONS, SKILL_ICONS, MOCK_STUDY_PLANS } from '../../constants';
+import type { StudyPlan } from '../../constants';
 import { Avatar } from '../ui/Avatar';
 import { Card } from '../ui/Card';
 import { CourseCard } from '../ui/CourseCard';
@@ -93,6 +94,29 @@ const SectionHeader: React.FC<{ title: string; onSeeAll?: () => void }> = ({ tit
     </div>
 );
 
+const StudyPlanCard: React.FC<{ plan: StudyPlan }> = ({ plan }) => {
+    return (
+        <Card className="p-6 flex flex-col group">
+            <div className="flex-grow">
+                <div className="transition-transform duration-300 ease-in-out group-hover:scale-110 group-hover:rotate-6 w-fit">
+                    {plan.icon}
+                </div>
+                <h3 className="text-xl font-bold mt-3 text-text-charcoal">{plan.title}</h3>
+                <span className="inline-block bg-highlight-slate/20 text-highlight-slate text-xs font-bold px-2 py-1 rounded-full mt-2">
+                    {plan.level}
+                </span>
+                <p className="text-gray-600 mt-3 text-sm h-14">{plan.description}</p>
+            </div>
+            <button
+                onClick={() => console.log(`Starting plan: ${plan.title}`)}
+                className="mt-4 w-full bg-primary text-white font-bold py-2 px-4 rounded-full hover:bg-opacity-90 transition-all duration-200 active:scale-95"
+            >
+                Start Plan
+            </button>
+        </Card>
+    );
+};
+
 export const HomeScreen: React.FC = () => {
   const { currentUser } = useAuth();
   const liveSession = MOCK_LIVE_SESSIONS.find(s => s.status === 'Live');
@@ -123,7 +147,7 @@ export const HomeScreen: React.FC = () => {
                 <BarChart className="text-accent" />
                 <div className="ml-4">
                     <p className="text-sm text-gray-600">Courses</p>
-                    <p className="font-bold text-lg">3 Enrolled</p>
+                    <p className="font-bold text-lg">{currentUser.enrolledCourses?.length || 0} Enrolled</p>
                 </div>
             </Card>
         </div>
@@ -136,6 +160,15 @@ export const HomeScreen: React.FC = () => {
         </div>
       </section>
       
+      <section>
+        <SectionHeader title="Featured Study Plans" onSeeAll={() => {}} />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {MOCK_STUDY_PLANS.slice(0, 3).map(plan => (
+            <StudyPlanCard key={plan.id} plan={plan} />
+          ))}
+        </div>
+      </section>
+
       <section>
         <SectionHeader title="Recommended Coaches" onSeeAll={() => {}} />
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">

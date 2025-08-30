@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { 
   onAuthStateChanged, 
@@ -10,7 +9,7 @@ import {
   sendPasswordResetEmail,
 } from 'firebase/auth';
 import { auth, db, googleProvider } from '../firebase';
-import { doc, setDoc, getDoc, serverTimestamp, runTransaction, arrayUnion, arrayRemove, DocumentReference, onSnapshot } from "firebase/firestore";
+import { doc, setDoc, getDoc, serverTimestamp, runTransaction, arrayUnion, arrayRemove, DocumentReference, onSnapshot, updateDoc } from "firebase/firestore";
 import type { AppUser } from '../types';
 
 interface AuthContextType {
@@ -22,6 +21,7 @@ interface AuthContextType {
   googleSignIn: () => Promise<any>;
   resetPassword: (email: string) => Promise<void>;
   toggleFollow: (otherUserId: string) => Promise<void>;
+  enrollInCourse: (courseId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -50,6 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         bio: firestoreData.bio || '',
         followers: firestoreData.followers || [],
         following: firestoreData.following || [],
+        enrolledCourses: firestoreData.enrolledCourses || [],
     }
   }
 
@@ -73,6 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       bio: role === 'Coach' ? 'Experienced chess coach ready to help you level up.' : 'Passionate chess student, eager to learn.',
       followers: [],
       following: [],
+      enrolledCourses: [],
     });
     return userCredential;
   }
@@ -99,6 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         bio: 'Passionate chess student, eager to learn.',
         followers: [],
         following: [],
+        enrolledCourses: [],
       });
     }
     return userCredential;
@@ -139,6 +142,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
   };
 
+  const enrollInCourse = async (courseId: string) => {
+    if (!currentUser) throw new Error("No user logged in");
+    const userDocRef = doc(db, 'users', currentUser.id);
+    await updateDoc(userDocRef, {
+        enrolledCourses: arrayUnion(courseId)
+    });
+  };
+
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user: FirebaseUser | null) => {
@@ -173,7 +184,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     googleSignIn,
     resetPassword,
-    toggleFollow
+    toggleFollow,
+    enrollInCourse
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

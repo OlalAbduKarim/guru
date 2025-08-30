@@ -15,6 +15,55 @@ interface Chat {
     otherUser?: AppUser;
 }
 
+/**
+ * Formats a Firestore timestamp for clear and consistent display in a chat list.
+ * This function provides relative time formatting for recent messages and
+ * specific date formats for older ones, enhancing user readability.
+ *
+ * - **Today:** Displays the time (e.g., "5:30 PM").
+ * - **Yesterday:** Displays the literal string "Yesterday".
+ * - **This Year:** Displays the month and day (e.g., "Oct 25").
+ * - **Previous Years:** Displays the full date (e.g., "10/25/2023").
+ *
+ * The 'en-US' locale is specified to ensure consistent output across all user devices.
+ *
+ * @param timestamp - The Firestore timestamp object (or any object with a `toDate()` method).
+ * @returns A formatted string representing the timestamp.
+ */
+const formatTimestamp = (timestamp: any): string => {
+    if (!timestamp?.toDate) {
+        return '';
+    }
+
+    const messageDate = timestamp.toDate();
+    const now = new Date();
+
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+
+    if (messageDate >= startOfToday) {
+        return messageDate.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: 'numeric',
+            hour12: true,
+        });
+    }
+    
+    if (messageDate >= startOfYesterday) {
+        return 'Yesterday';
+    }
+
+    if (messageDate.getFullYear() === now.getFullYear()) {
+        return messageDate.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+        });
+    }
+
+    return messageDate.toLocaleDateString('en-US');
+};
+
+
 export const MessagesScreen: React.FC = () => {
     const { currentUser } = useAuth();
     const [chats, setChats] = useState<Chat[]>([]);
@@ -92,8 +141,13 @@ export const MessagesScreen: React.FC = () => {
                                 className="p-4 flex items-center cursor-pointer hover:bg-gray-50 transition-colors"
                             >
                                 <Avatar src={chat.otherUser?.avatarUrl || ''} alt={chat.otherUser?.name || 'User'} size="md" />
-                                <div className="ml-4 flex-grow">
-                                    <p className="font-bold text-text-charcoal">{chat.otherUser?.name}</p>
+                                <div className="ml-4 flex-grow overflow-hidden">
+                                    <div className="flex justify-between items-center">
+                                        <p className="font-bold text-text-charcoal truncate">{chat.otherUser?.name}</p>
+                                        <p className="text-xs text-gray-500 flex-shrink-0 ml-2">
+                                            {formatTimestamp(chat.lastMessage?.timestamp)}
+                                        </p>
+                                    </div>
                                     <p className="text-sm text-gray-500 truncate">{chat.lastMessage?.text || 'No messages yet'}</p>
                                 </div>
                             </li>

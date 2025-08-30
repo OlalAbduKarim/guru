@@ -1,4 +1,7 @@
-import { initializeApp } from "firebase/app";
+import firebase from "firebase/compat/app";
+import "firebase/compat/auth";
+import "firebase/compat/firestore";
+import "firebase/compat/storage";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
@@ -15,8 +18,7 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
-
+const app = firebase.initializeApp(firebaseConfig);
 
 // Initialize and export Firebase services
 export const auth = getAuth(app);
