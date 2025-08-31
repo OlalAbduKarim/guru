@@ -30,7 +30,8 @@ export const CreateCourseScreen: React.FC = () => {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFiles = e.target.files;
         if (selectedFiles) {
-            const newFiles: FileUploadStatus[] = Array.from(selectedFiles).map(file => ({
+            // FIX: Explicitly type `file` as `File` to resolve type inference issue.
+            const newFiles: FileUploadStatus[] = Array.from(selectedFiles).map((file: File) => ({
                 file,
                 status: 'pending',
                 progress: 0,

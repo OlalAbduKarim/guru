@@ -65,6 +65,11 @@ export interface GamePlayer {
     avatarUrl: string;
 }
 
+export interface TimeControl {
+    initial: number; // seconds
+    increment: number; // seconds
+}
+
 export interface Game {
     id: string;
     pgn: string;
@@ -76,6 +81,11 @@ export interface Game {
     endReason?: string;
     createdAt: any; // Firestore Timestamp
     updatedAt: any; // Firestore Timestamp
+    drawOffer?: string | null; // ID of the player who offered the draw
+    timeControl?: TimeControl;
+    whiteTime?: number; // remaining seconds
+    blackTime?: number; // remaining seconds
+    lastMoveTimestamp?: any; // Firestore Timestamp
 }
 
 export interface BaseStudyPlan {

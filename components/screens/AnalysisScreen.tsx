@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useState, useMemo, useEffect } from 'react';
 import { Chess } from 'chess.js';
@@ -77,7 +78,9 @@ export const AnalysisScreen: React.FC = () => {
         }
     };
     
-    const currentMoveIndex = game.history().length - 1;
+    const verboseHistory = game.history({ verbose: true });
+    const lastMove = verboseHistory.length > 0 ? verboseHistory[verboseHistory.length - 1] : null;
+    const currentMoveIndex = verboseHistory.length - 1;
 
     return (
         <div className="p-4">
@@ -86,7 +89,12 @@ export const AnalysisScreen: React.FC = () => {
             </h1>
             <div className="flex flex-col lg:flex-row gap-6">
                 <div className="flex-1">
-                    <ChessBoardWrapper position={fen} onMove={() => false} isMyTurn={false} />
+                    <ChessBoardWrapper 
+                        position={fen} 
+                        onMove={() => false} 
+                        isMyTurn={false}
+                        lastMove={lastMove ? { from: lastMove.from, to: lastMove.to } : null} 
+                    />
                 </div>
                 <Card className="lg:w-96 p-4 space-y-4">
                     <div>

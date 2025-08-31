@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -144,7 +145,8 @@ export const ChatScreen: React.FC = () => {
         }
     };
 
-    const messageGroups = messages.reduce((groups, message) => {
+    // FIX: Explicitly specify the generic type for `reduce` to ensure TypeScript can correctly infer the accumulator's shape, resolving the error on `messagesInGroup.map`.
+    const messageGroups = messages.reduce<Record<string, Message[]>>((groups, message) => {
         if (!message.timestamp?.toDate) {
             return groups;
         }
@@ -154,7 +156,7 @@ export const ChatScreen: React.FC = () => {
         }
         groups[dateKey].push(message);
         return groups;
-    }, {} as { [key: string]: Message[] });
+    }, {});
 
     if (loading || !receiver) {
         return <div className="flex h-full items-center justify-center">Loading chat...</div>;
